@@ -82,6 +82,13 @@
         .btn-danger:hover {
             box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
         }
+        .btn-secondary {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+            margin-left: 10px;
+        }
+        .btn-secondary:hover {
+            box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+        }
         .stocks-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -145,16 +152,6 @@
             border-left-color: #2e7d32;
             background: #e8f5e8;
             font-weight: bold;
-        }
-        .analysis-item.trendline {
-            border-left-color: #673ab7;
-            background: #f3e5f5;
-        }
-        .analysis-item.trendline-break {
-            border-left-color: #e91e63;
-            background: #fce4ec;
-            font-weight: bold;
-            animation: pulse 2s infinite;
         }
         .alert {
             background: linear-gradient(135deg, #ff4444 0%, #cc0000 100%);
@@ -252,21 +249,88 @@
             font-size: 0.9rem;
             color: #1565c0;
         }
-        .trendline-info {
-            background: #f3e5f5;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-size: 0.9rem;
-            color: #673ab7;
+        /* Simple Explanation Modal Styles */
+        .explanation-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
         }
-        .api-status {
-            background: #e8f5e8;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 10px 0;
-            font-size: 0.9rem;
+        .explanation-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 700px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        .explanation-header {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            padding: 20px;
+            margin: -30px -30px 30px -30px;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+        .explanation-header h2 {
+            margin: 0;
+            font-size: 1.8rem;
+        }
+        .close-explanation {
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        .close-explanation:hover {
+            opacity: 0.7;
+        }
+        .simple-explanation {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #333;
+        }
+        .simple-explanation h3 {
             color: #2e7d32;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        .simple-explanation .key-point {
+            background: #f0f7ff;
+            padding: 15px;
+            border-left: 4px solid #2196F3;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .simple-explanation .action-item {
+            background: #fff3e0;
+            padding: 15px;
+            border-left: 4px solid #ff9800;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+            font-weight: bold;
+        }
+        .simple-explanation .analogy {
+            background: #f3e5f5;
+            padding: 15px;
+            border-left: 4px solid #9c27b0;
+            margin: 15px 0;
+            border-radius: 0 8px 8px 0;
+            font-style: italic;
         }
         @media (max-width: 768px) {
             .stocks-grid {
@@ -278,6 +342,14 @@
             .header h1 {
                 font-size: 2rem;
             }
+            .explanation-content {
+                margin: 2% auto;
+                width: 95%;
+                padding: 20px;
+            }
+            .explanation-header {
+                margin: -20px -20px 20px -20px;
+            }
         }
     </style>
 </head>
@@ -287,7 +359,7 @@
             <h1>📈 Smart Stock Trading Tracker</h1>
             <p>Track opportunities using Mark Douglas trading principles</p>
             <div style="font-size: 0.9rem; margin-top: 15px; background: rgba(255,255,255,0.1); padding: 10px; border-radius: 8px;">
-                📡 <strong>Real API Keys Active:</strong> Using your Twelve Data (800 calls/day) and Polygon.io (5 calls/min) keys for real-time stock data and complete historical analysis with trendlines.
+                📡 <strong>Enhanced with Historical Analysis:</strong> This tracker now analyzes 6 months of historical data to identify REAL support and resistance levels based on multiple price touches and volume confirmation.
             </div>
         </div>
         <div class="main-content">
@@ -304,6 +376,11 @@
                     <input type="number" id="riskPercent" placeholder="Risk % (1-5)" min="0.5" max="10" step="0.5" value="2">
                     <button class="btn" onclick="addStock()">Add Stock</button>
                 </div>
+                <div class="input-group" style="border-top: 1px solid #ddd; padding-top: 15px; margin-top: 15px;">
+                    <input type="password" id="claudeApiKey" placeholder="Claude API Key (stored locally)" style="flex: 1;">
+                    <button class="btn btn-secondary" onclick="saveApiKey()">Save API Key</button>
+                    <span id="apiKeyStatus" style="margin-left: 10px; font-weight: bold;"></span>
+                </div>
                 <div id="addStockError"></div>
             </div>
             <div id="stocksContainer" class="stocks-grid">
@@ -311,13 +388,25 @@
             </div>
         </div>
     </div>
+
+    <!-- Simple Explanation Modal -->
+    <div id="explanationModal" class="explanation-modal">
+        <div class="explanation-content">
+            <div class="explanation-header">
+                <span class="close-explanation" onclick="closeExplanation()">&times;</span>
+                <h2>🧠 Simple Explanation</h2>
+            </div>
+            <div id="explanationText" class="simple-explanation">
+                <!-- Explanation content will be inserted here -->
+            </div>
+        </div>
+    </div>
+
     <script>
-        // ====== CORS-FRIENDLY STOCK TRACKER SCRIPT ======
+        // ====== ENHANCED HISTORICAL ANALYSIS SCRIPT ======
         let trackedStocks = [];
-        
-        // Using your real API keys for much better data access
-        const TWELVE_DATA_KEY = '82bc8937fd9d488195cbed42be934f10';
-        const POLYGON_API_KEY = 'dluOx2rSNYsAw7plr3E4monBjOLlc70l';
+        const ALPHA_VANTAGE_KEY = 'CYWU5AB73MHCXLM0';
+        const FMP_KEY = 'kCTs1LZBDqjgAuq2XsrbLdMInyG7jnmx';
 
         window.onload = function() {
             loadTrackedStocks();
@@ -350,18 +439,18 @@
                 return;
             }
             try {
-                errorDiv.innerHTML = '<div class="loading">Fetching real-time data with your API keys and analyzing 6 months of history + trendlines...</div>';
+                errorDiv.innerHTML = '<div class="loading">Fetching real-time data and analyzing 6 months of history...</div>';
                 
-                // Get both current and historical data using CORS-friendly APIs
+                // Get both current and historical data
                 const [currentData, historicalData] = await Promise.all([
-                    fetchCurrentDataCORSFriendly(symbol),
-                    fetchHistoricalDataCORSFriendly(symbol)
+                    fetchCurrentStockData(symbol),
+                    fetchHistoricalData(symbol)
                 ]);
                 
                 if (!currentData) throw new Error('Unable to fetch current stock data');
                 if (!historicalData || historicalData.length < 30) throw new Error('Unable to fetch sufficient historical data');
                 
-                const analysis = analyzeStockWithHistoryAndTrendlines(currentData, historicalData, strategy);
+                const analysis = analyzeStockWithHistory(currentData, historicalData, strategy);
                 const newStock = {
                     symbol: symbol,
                     strategy: strategy,
@@ -383,458 +472,202 @@
             }
         }
 
-        async function fetchCurrentDataCORSFriendly(symbol) {
-            // Try multiple CORS-friendly sources
+        async function fetchCurrentStockData(symbol) {
+            // Try multiple real data sources for current data
             const dataSources = [
-                { name: 'Twelve Data', func: () => fetchFromTwelveData(symbol) },
-                { name: 'Polygon Free', func: () => fetchFromPolygonFree(symbol) },
-                { name: 'Fallback Demo', func: () => createDemoData(symbol) }
+                { name: 'Yahoo Finance', func: () => fetchFromYahooFinance(symbol) },
+                { name: 'Alpha Vantage', func: () => fetchFromAlphaVantage(symbol) },
+                { name: 'Financial Modeling Prep', func: () => fetchFromFinancialModelingPrep(symbol) }
             ];
             
             for (const source of dataSources) {
                 try {
                     const data = await source.func();
                     if (data && data.currentPrice && data.currentPrice > 0) {
-                        console.log(`✅ Successfully fetched ${symbol} from ${source.name}`);
                         return data;
                     }
                 } catch (error) {
-                    console.log(`❌ ${source.name} failed: ${error.message}`);
+                    console.log(`${source.name} failed: ${error.message}`);
                 }
             }
-            throw new Error('Unable to fetch current stock data with your API keys - all sources failed');
+            throw new Error('Unable to fetch current stock data from any source');
         }
 
-        async function fetchHistoricalDataCORSFriendly(symbol, months = 6) {
+        async function fetchHistoricalData(symbol, months = 6) {
+            // Try Yahoo Finance first (free and reliable)
             try {
-                console.log(`📊 Fetching ${months} months of historical data for ${symbol} from Twelve Data...`);
-                return await fetchHistoricalFromTwelveData(symbol, months);
+                return await fetchHistoricalFromYahoo(symbol, months);
             } catch (error) {
-                console.log('❌ Twelve Data historical failed:', error.message);
-                console.log('🔄 Falling back to demo data for demonstration...');
-                // Fallback to demo data for demonstration
-                return generateDemoHistoricalData(symbol, months);
+                console.log('Yahoo historical failed:', error.message);
             }
-        }
-
-        async function fetchFromTwelveData(symbol) {
-            // Twelve Data has a free tier that supports CORS
-            const url = `https://api.twelvedata.com/quote?symbol=${symbol}&apikey=${TWELVE_DATA_KEY}`;
             
+            // Fallback to Alpha Vantage
             try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Twelve Data API failed');
-                
-                const data = await response.json();
-                if (data.code) {
-                    if (data.code === 429) {
-                        throw new Error('Daily API limit reached (800 calls/day). Try again tomorrow or upgrade plan.');
-                    }
-                    throw new Error(data.message || 'Twelve Data API error');
-                }
-                
-                const currentPrice = parseFloat(data.close);
-                const previousClose = parseFloat(data.previous_close);
-                
-                return {
-                    symbol: symbol,
-                    currentPrice: +currentPrice.toFixed(2),
-                    open: +parseFloat(data.open).toFixed(2),
-                    high: +parseFloat(data.high).toFixed(2),
-                    low: +parseFloat(data.low).toFixed(2),
-                    volume: parseInt(data.volume),
-                    change: +(currentPrice - previousClose).toFixed(2),
-                    changePercent: +(((currentPrice - previousClose) / previousClose) * 100).toFixed(2),
-                    previousClose: +previousClose.toFixed(2)
-                };
+                return await fetchHistoricalFromAlphaVantage(symbol);
             } catch (error) {
-                throw new Error('Twelve Data fetch failed: ' + error.message);
+                console.log('Alpha Vantage historical failed:', error.message);
             }
+            
+            throw new Error('Unable to fetch historical data from any source');
         }
 
-        async function fetchFromPolygonFree(symbol) {
-            // Polygon has a free tier but limited
-            const url = `https://api.polygon.io/v2/aggs/ticker/${symbol}/prev?adjusted=true&apikey=${POLYGON_API_KEY}`;
+        async function fetchHistoricalFromYahoo(symbol, months = 6) {
+            const endDate = Math.floor(Date.now() / 1000);
+            const startDate = endDate - (months * 30 * 24 * 60 * 60); // months ago
             
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error('Polygon API failed');
-                
-                const data = await response.json();
-                if (data.status === 'ERROR') {
-                    throw new Error(data.error || 'Polygon API error');
-                }
-                if (!data.results || data.results.length === 0) {
-                    throw new Error('No data available for this symbol from Polygon');
-                }
-                
-                const result = data.results[0];
-                const currentPrice = result.c;
-                const previousClose = result.o;
-                
-                return {
-                    symbol: symbol,
-                    currentPrice: +currentPrice.toFixed(2),
-                    open: +result.o.toFixed(2),
-                    high: +result.h.toFixed(2),
-                    low: +result.l.toFixed(2),
-                    volume: result.v,
-                    change: +(currentPrice - previousClose).toFixed(2),
-                    changePercent: +(((currentPrice - previousClose) / previousClose) * 100).toFixed(2),
-                    previousClose: +previousClose.toFixed(2)
-                };
-            } catch (error) {
-                throw new Error('Polygon fetch failed: ' + error.message);
-            }
-        }
-
-        async function fetchHistoricalFromTwelveData(symbol, months = 6) {
-            const endDate = new Date();
-            const startDate = new Date();
-            startDate.setMonth(endDate.getMonth() - months);
-            
-            const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=1day&start_date=${startDate.toISOString().split('T')[0]}&end_date=${endDate.toISOString().split('T')[0]}&apikey=${TWELVE_DATA_KEY}`;
-            
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?period1=${startDate}&period2=${endDate}&interval=1d`;
             const response = await fetch(url);
-            if (!response.ok) throw new Error('Twelve Data historical API failed');
+            if (!response.ok) throw new Error('Yahoo Finance historical API failed');
             
             const data = await response.json();
-            if (data.code) {
-                if (data.code === 429) {
-                    throw new Error('Daily limit reached (800 calls/day). Historical data fallback to demo.');
-                }
-                throw new Error(data.message || 'Historical API error');
-            }
+            const result = data.chart?.result?.[0];
+            if (!result) throw new Error('No historical data from Yahoo Finance');
             
-            const timeSeries = data.values;
-            if (!timeSeries) throw new Error('No historical data from Twelve Data');
+            const timestamps = result.timestamp;
+            const quotes = result.indicators.quote[0];
+            const volumes = quotes.volume;
             
             const historicalData = [];
+            for (let i = 0; i < timestamps.length; i++) {
+                if (quotes.high[i] && quotes.low[i] && quotes.open[i] && quotes.close[i]) {
+                    historicalData.push({
+                        date: new Date(timestamps[i] * 1000).toISOString().split('T')[0],
+                        open: +quotes.open[i].toFixed(2),
+                        high: +quotes.high[i].toFixed(2),
+                        low: +quotes.low[i].toFixed(2),
+                        close: +quotes.close[i].toFixed(2),
+                        volume: volumes[i] || 0
+                    });
+                }
+            }
             
-            for (let i = 0; i < timeSeries.length; i++) {
-                const dayData = timeSeries[i];
+            return historicalData;
+        }
+
+        async function fetchHistoricalFromAlphaVantage(symbol) {
+            const url = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&outputsize=full&apikey=${ALPHA_VANTAGE_KEY}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Alpha Vantage historical API failed');
+            
+            const data = await response.json();
+            const timeSeries = data['Time Series (Daily)'];
+            if (!timeSeries) throw new Error('No historical data from Alpha Vantage');
+            
+            const historicalData = [];
+            const dates = Object.keys(timeSeries).slice(0, 180); // Last 6 months
+            
+            for (const date of dates) {
+                const dayData = timeSeries[date];
                 historicalData.push({
-                    date: dayData.datetime,
-                    timestamp: new Date(dayData.datetime).getTime() / 1000,
-                    index: i,
-                    open: +parseFloat(dayData.open).toFixed(2),
-                    high: +parseFloat(dayData.high).toFixed(2),
-                    low: +parseFloat(dayData.low).toFixed(2),
-                    close: +parseFloat(dayData.close).toFixed(2),
-                    volume: parseInt(dayData.volume) || 1000000
+                    date: date,
+                    open: +parseFloat(dayData['1. open']).toFixed(2),
+                    high: +parseFloat(dayData['2. high']).toFixed(2),
+                    low: +parseFloat(dayData['3. low']).toFixed(2),
+                    close: +parseFloat(dayData['4. close']).toFixed(2),
+                    volume: parseInt(dayData['5. volume'])
                 });
             }
             
             return historicalData.reverse(); // Chronological order
         }
 
-        function createDemoData(symbol) {
-            // Generate realistic demo data for demonstration
-            const basePrice = Math.random() * 200 + 50; // Random price between 50-250
-            const change = (Math.random() - 0.5) * basePrice * 0.05; // ±5% change
-            
+        async function fetchFromYahooFinance(symbol) {
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Yahoo Finance API failed');
+            const data = await response.json();
+            const result = data.chart?.result?.[0];
+            if (!result) throw new Error('No data from Yahoo Finance');
+            const meta = result.meta;
+            const currentPrice = meta.regularMarketPrice || meta.previousClose;
+            const previousClose = meta.previousClose;
             return {
                 symbol: symbol,
-                currentPrice: +(basePrice + change).toFixed(2),
-                open: +basePrice.toFixed(2),
-                high: +(basePrice + Math.abs(change) * 1.2).toFixed(2),
-                low: +(basePrice - Math.abs(change) * 1.2).toFixed(2),
-                volume: Math.floor(Math.random() * 10000000) + 1000000,
-                change: +change.toFixed(2),
-                changePercent: +((change / basePrice) * 100).toFixed(2),
-                previousClose: +basePrice.toFixed(2)
+                currentPrice: +currentPrice.toFixed(2),
+                open: +(meta.regularMarketOpen || currentPrice).toFixed(2),
+                high: +(meta.regularMarketDayHigh || currentPrice).toFixed(2),
+                low: +(meta.regularMarketDayLow || currentPrice).toFixed(2),
+                volume: meta.regularMarketVolume || 0,
+                change: +(currentPrice - previousClose).toFixed(2),
+                changePercent: +(((currentPrice - previousClose) / previousClose) * 100).toFixed(2),
+                previousClose: +previousClose.toFixed(2)
             };
         }
 
-        function generateDemoHistoricalData(symbol, months = 6) {
-            const historicalData = [];
-            const days = months * 30;
-            let price = Math.random() * 200 + 50;
-            
-            for (let i = 0; i < days; i++) {
-                const date = new Date();
-                date.setDate(date.getDate() - (days - i));
-                
-                // Add some realistic price movement
-                const change = (Math.random() - 0.5) * price * 0.03;
-                price += change;
-                price = Math.max(price, 10); // Minimum price
-                
-                const dayHigh = price * (1 + Math.random() * 0.02);
-                const dayLow = price * (1 - Math.random() * 0.02);
-                
-                historicalData.push({
-                    date: date.toISOString().split('T')[0],
-                    timestamp: date.getTime() / 1000,
-                    index: i,
-                    open: +price.toFixed(2),
-                    high: +dayHigh.toFixed(2),
-                    low: +dayLow.toFixed(2),
-                    close: +price.toFixed(2),
-                    volume: Math.floor(Math.random() * 5000000) + 1000000
-                });
-            }
-            
-            return historicalData;
+        async function fetchFromAlphaVantage(symbol) {
+            const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${ALPHA_VANTAGE_KEY}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Alpha Vantage API failed');
+            const data = await response.json();
+            const quote = data['Global Quote'];
+            if (!quote) throw new Error('No data from Alpha Vantage');
+            const currentPrice = parseFloat(quote['05. price']);
+            const previousClose = parseFloat(quote['08. previous close']);
+            return {
+                symbol: symbol,
+                currentPrice: +currentPrice.toFixed(2),
+                open: +parseFloat(quote['02. open']).toFixed(2),
+                high: +parseFloat(quote['03. high']).toFixed(2),
+                low: +parseFloat(quote['04. low']).toFixed(2),
+                volume: parseInt(quote['06. volume']),
+                change: +parseFloat(quote['09. change']).toFixed(2),
+                changePercent: +parseFloat(quote['10. change percent'].replace('%', '')).toFixed(2),
+                previousClose: +previousClose.toFixed(2)
+            };
         }
 
-        // Include all the analysis functions from the previous version
-        function analyzeStockWithHistoryAndTrendlines(currentData, historicalData, strategy) {
+        async function fetchFromFinancialModelingPrep(symbol) {
+            const url = `https://financialmodelingprep.com/api/v3/quote/${symbol}?apikey=${FMP_KEY}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Financial Modeling Prep API failed');
+            const data = await response.json();
+            if (!data || data.length === 0) throw new Error('No data from Financial Modeling Prep');
+            const quote = data[0];
+            return {
+                symbol: symbol,
+                currentPrice: +quote.price.toFixed(2),
+                open: +quote.open.toFixed(2),
+                high: +quote.dayHigh.toFixed(2),
+                low: +quote.dayLow.toFixed(2),
+                volume: quote.volume,
+                change: +quote.change.toFixed(2),
+                changePercent: +quote.changesPercentage.toFixed(2),
+                previousClose: +quote.previousClose.toFixed(2)
+            };
+        }
+
+        function analyzeStockWithHistory(currentData, historicalData, strategy) {
             const analysis = {
                 strategy: strategy,
                 signals: [],
                 levels: {},
-                trendlines: {},
                 douglasPrinciples: {},
                 recommendation: '',
                 riskLevel: 'Medium',
                 historicalAnalysis: {}
             };
 
-            // Calculate horizontal support and resistance from historical data
+            // Calculate real support and resistance from historical data
             const supportResistanceLevels = findSupportResistanceLevels(historicalData);
             analysis.levels = supportResistanceLevels;
             
-            // Find trendlines
-            const trendlineAnalysis = findTrendlines(historicalData);
-            analysis.trendlines = trendlineAnalysis;
-            
-            // Analyze overall trend and patterns
+            // Analyze trend and patterns
             const trendAnalysis = analyzeTrend(historicalData);
             analysis.historicalAnalysis = trendAnalysis;
             
-            // Get specific strategy analysis incorporating trendlines
-            const strategyAnalysis = getStrategyAnalysisWithTrendlines(currentData, analysis.levels, analysis.trendlines, trendAnalysis, strategy);
+            // Get specific strategy analysis
+            const strategyAnalysis = getStrategyAnalysis(currentData, analysis.levels, trendAnalysis, strategy);
             Object.assign(analysis, strategyAnalysis);
             
             // Douglas principles
             analysis.douglasPrinciples = {
-                edge: `${strategy} strategy: ${analysis.levels.supportLevels.length} support, ${analysis.levels.resistanceLevels.length} resistance, ${analysis.trendlines.ascending.length} ascending & ${analysis.trendlines.descending.length} descending trendlines`,
-                probability: `Historical data: ${analysis.historicalAnalysis.trendStrength}% confidence in ${analysis.historicalAnalysis.currentTrend} trend`,
-                riskAcceptance: `Stop loss at nearest major level or trendline break: $${analysis.levels.stopLoss || analysis.trendlines.stopLoss || 'TBD'}`,
-                execution: `Entry signals from ${analysis.trendlines.activeTrendlines} active trendlines + horizontal levels`
+                edge: `${strategy} strategy based on ${analysis.levels.supportLevels.length} support and ${analysis.levels.resistanceLevels.length} resistance levels from 6-month analysis`,
+                probability: `Historical data shows ${analysis.historicalAnalysis.trendStrength}% confidence in current ${analysis.historicalAnalysis.currentTrend} trend`,
+                riskAcceptance: `Stop loss calculated at nearest major level: $${analysis.levels.stopLoss || 'TBD'}`,
+                execution: `Entry signals based on real price levels tested ${analysis.levels.strongestSupport?.touches || 'multiple'} times`
             };
 
             return analysis;
-        }
-
-        function findTrendlines(historicalData) {
-            const trendlines = {
-                ascending: [],
-                descending: [],
-                activeTrendlines: 0,
-                nearestAscending: null,
-                nearestDescending: null,
-                currentTrendlineLevel: null,
-                trendlineBreaks: [],
-                stopLoss: null
-            };
-
-            // Get swing points
-            const swingPoints = findSwingPoints(historicalData);
-            
-            // Find ascending trendlines (connecting swing lows)
-            trendlines.ascending = findAscendingTrendlines(swingPoints.lows, historicalData);
-            
-            // Find descending trendlines (connecting swing highs)  
-            trendlines.descending = findDescendingTrendlines(swingPoints.highs, historicalData);
-            
-            // Find currently active trendlines
-            const currentPrice = historicalData[historicalData.length - 1].close;
-            const currentIndex = historicalData.length - 1;
-            
-            // Check which trendlines are currently relevant
-            trendlines.ascending.forEach(trendline => {
-                const currentTrendlinePrice = calculateTrendlinePrice(trendline, currentIndex);
-                if (Math.abs(currentPrice - currentTrendlinePrice) / currentPrice < 0.05) { // Within 5%
-                    trendlines.activeTrendlines++;
-                    if (!trendlines.nearestAscending || currentTrendlinePrice > trendlines.nearestAscending.currentPrice) {
-                        trendlines.nearestAscending = {
-                            ...trendline,
-                            currentPrice: currentTrendlinePrice
-                        };
-                    }
-                }
-            });
-            
-            trendlines.descending.forEach(trendline => {
-                const currentTrendlinePrice = calculateTrendlinePrice(trendline, currentIndex);
-                if (Math.abs(currentPrice - currentTrendlinePrice) / currentPrice < 0.05) { // Within 5%
-                    trendlines.activeTrendlines++;
-                    if (!trendlines.nearestDescending || currentTrendlinePrice < trendlines.nearestDescending.currentPrice) {
-                        trendlines.nearestDescending = {
-                            ...trendline,
-                            currentPrice: currentTrendlinePrice
-                        };
-                    }
-                }
-            });
-            
-            // Check for trendline breaks
-            trendlines.trendlineBreaks = detectTrendlineBreaks(trendlines, historicalData);
-            
-            // Set stop loss based on trendlines
-            if (trendlines.nearestAscending) {
-                trendlines.stopLoss = +(trendlines.nearestAscending.currentPrice * 0.97).toFixed(2);
-            } else if (trendlines.nearestDescending) {
-                trendlines.stopLoss = +(trendlines.nearestDescending.currentPrice * 1.03).toFixed(2);
-            }
-
-            return trendlines;
-        }
-
-        function findAscendingTrendlines(lows, historicalData) {
-            const trendlines = [];
-            const minTouches = 2;
-            const maxAngle = 45; // Maximum angle in degrees
-            
-            for (let i = 0; i < lows.length - 1; i++) {
-                for (let j = i + 1; j < lows.length; j++) {
-                    const point1 = lows[i];
-                    const point2 = lows[j];
-                    
-                    // Calculate slope (must be positive for ascending)
-                    const slope = (point2.price - point1.price) / (point2.index - point1.index);
-                    if (slope <= 0) continue;
-                    
-                    // Check angle (not too steep)
-                    const angle = Math.atan(slope * 100) * (180 / Math.PI); // Convert to degrees
-                    if (angle > maxAngle) continue;
-                    
-                    // Calculate trendline equation: y = mx + b
-                    const intercept = point1.price - (slope * point1.index);
-                    
-                    // Find all points that touch this trendline
-                    const touchingPoints = findPointsOnTrendline(historicalData, slope, intercept, 'low', 0.02);
-                    
-                    if (touchingPoints.length >= minTouches) {
-                        const trendline = {
-                            type: 'ascending',
-                            slope: +slope.toFixed(6),
-                            intercept: +intercept.toFixed(2),
-                            startPoint: point1,
-                            endPoint: point2,
-                            touches: touchingPoints.length,
-                            strength: touchingPoints.length >= 4 ? 'Strong' : touchingPoints.length >= 3 ? 'Moderate' : 'Weak',
-                            touchingPoints: touchingPoints,
-                            angle: +angle.toFixed(1)
-                        };
-                        trendlines.push(trendline);
-                    }
-                }
-            }
-            
-            // Sort by number of touches and return best ones
-            return trendlines.sort((a, b) => b.touches - a.touches).slice(0, 3);
-        }
-
-        function findDescendingTrendlines(highs, historicalData) {
-            const trendlines = [];
-            const minTouches = 2;
-            const maxAngle = 45; // Maximum angle in degrees
-            
-            for (let i = 0; i < highs.length - 1; i++) {
-                for (let j = i + 1; j < highs.length; j++) {
-                    const point1 = highs[i];
-                    const point2 = highs[j];
-                    
-                    // Calculate slope (must be negative for descending)
-                    const slope = (point2.price - point1.price) / (point2.index - point1.index);
-                    if (slope >= 0) continue;
-                    
-                    // Check angle (not too steep)
-                    const angle = Math.abs(Math.atan(slope * 100) * (180 / Math.PI)); // Convert to degrees
-                    if (angle > maxAngle) continue;
-                    
-                    // Calculate trendline equation: y = mx + b
-                    const intercept = point1.price - (slope * point1.index);
-                    
-                    // Find all points that touch this trendline
-                    const touchingPoints = findPointsOnTrendline(historicalData, slope, intercept, 'high', 0.02);
-                    
-                    if (touchingPoints.length >= minTouches) {
-                        const trendline = {
-                            type: 'descending',
-                            slope: +slope.toFixed(6),
-                            intercept: +intercept.toFixed(2),
-                            startPoint: point1,
-                            endPoint: point2,
-                            touches: touchingPoints.length,
-                            strength: touchingPoints.length >= 4 ? 'Strong' : touchingPoints.length >= 3 ? 'Moderate' : 'Weak',
-                            touchingPoints: touchingPoints,
-                            angle: +angle.toFixed(1)
-                        };
-                        trendlines.push(trendline);
-                    }
-                }
-            }
-            
-            // Sort by number of touches and return best ones
-            return trendlines.sort((a, b) => b.touches - a.touches).slice(0, 3);
-        }
-
-        function findPointsOnTrendline(historicalData, slope, intercept, priceType, tolerance) {
-            const touchingPoints = [];
-            
-            for (let i = 0; i < historicalData.length; i++) {
-                const dataPoint = historicalData[i];
-                const expectedPrice = slope * i + intercept;
-                const actualPrice = priceType === 'high' ? dataPoint.high : dataPoint.low;
-                
-                // Check if point is close to trendline
-                const priceDifference = Math.abs(actualPrice - expectedPrice) / expectedPrice;
-                if (priceDifference <= tolerance) {
-                    touchingPoints.push({
-                        index: i,
-                        date: dataPoint.date,
-                        price: actualPrice,
-                        expectedPrice: +expectedPrice.toFixed(2),
-                        difference: +priceDifference.toFixed(4)
-                    });
-                }
-            }
-            
-            return touchingPoints;
-        }
-
-        function calculateTrendlinePrice(trendline, index) {
-            return +(trendline.slope * index + trendline.intercept).toFixed(2);
-        }
-
-        function detectTrendlineBreaks(trendlines, historicalData) {
-            const breaks = [];
-            const currentPrice = historicalData[historicalData.length - 1].close;
-            const currentIndex = historicalData.length - 1;
-            
-            // Check ascending trendline breaks (price below trendline)
-            trendlines.ascending.forEach(trendline => {
-                const currentTrendlinePrice = calculateTrendlinePrice(trendline, currentIndex);
-                if (currentPrice < currentTrendlinePrice * 0.98) { // 2% below trendline
-                    breaks.push({
-                        type: 'ascending_break',
-                        trendline: trendline,
-                        currentPrice: currentPrice,
-                        trendlinePrice: currentTrendlinePrice,
-                        breakPercentage: +((1 - currentPrice/currentTrendlinePrice) * 100).toFixed(2)
-                    });
-                }
-            });
-            
-            // Check descending trendline breaks (price above trendline)
-            trendlines.descending.forEach(trendline => {
-                const currentTrendlinePrice = calculateTrendlinePrice(trendline, currentIndex);
-                if (currentPrice > currentTrendlinePrice * 1.02) { // 2% above trendline
-                    breaks.push({
-                        type: 'descending_break',
-                        trendline: trendline,
-                        currentPrice: currentPrice,
-                        trendlinePrice: currentTrendlinePrice,
-                        breakPercentage: +((currentPrice/currentTrendlinePrice - 1) * 100).toFixed(2)
-                    });
-                }
-            });
-            
-            return breaks;
         }
 
         function findSupportResistanceLevels(historicalData) {
@@ -1016,7 +849,7 @@
             return Math.sqrt(variance) * Math.sqrt(252) * 100; // Annualized volatility as percentage
         }
 
-        function getStrategyAnalysisWithTrendlines(currentData, levels, trendlines, trendAnalysis, strategy) {
+        function getStrategyAnalysis(currentData, levels, trendAnalysis, strategy) {
             const analysis = {
                 signals: [],
                 recommendation: 'WAIT',
@@ -1026,52 +859,20 @@
             const currentPrice = currentData.currentPrice;
             const nearestSupport = levels.currentSupport;
             const nearestResistance = levels.currentResistance;
-            const nearestAscending = trendlines.nearestAscending;
-            const nearestDescending = trendlines.nearestDescending;
-            const trendlineBreaks = trendlines.trendlineBreaks;
 
-            // Check for trendline breaks first (high priority signals)
-            if (trendlineBreaks.length > 0) {
-                trendlineBreaks.forEach(breakInfo => {
-                    if (breakInfo.type === 'ascending_break') {
-                        analysis.signals.push(`🔻 TRENDLINE BREAK: Price broke ${breakInfo.breakPercentage}% below ascending trendline at $${breakInfo.trendlinePrice}`);
-                        if (strategy === 'breakout' || strategy === 'trend') {
-                            analysis.recommendation = 'SELL/SHORT';
-                            analysis.riskLevel = 'Medium';
-                        }
-                    } else if (breakInfo.type === 'descending_break') {
-                        analysis.signals.push(`🔺 TRENDLINE BREAKOUT: Price broke ${breakInfo.breakPercentage}% above descending trendline at $${breakInfo.trendlinePrice}`);
-                        if (strategy === 'breakout' || strategy === 'trend') {
-                            analysis.recommendation = 'BUY';
-                            analysis.riskLevel = 'Medium';
-                        }
-                    }
-                });
-            }
-
-            // Strategy-specific analysis incorporating trendlines
             switch (strategy) {
                 case 'range':
                     if (nearestSupport && currentPrice <= nearestSupport.price * 1.03) {
-                        analysis.signals.push(`Near REAL support at $${nearestSupport.price} (${nearestSupport.touches} touches)`);
-                        if (nearestAscending && currentPrice >= nearestAscending.currentPrice * 0.98) {
-                            analysis.signals.push(`🔺 CONFLUENCE: Support + ascending trendline at $${nearestAscending.currentPrice}`);
-                            analysis.recommendation = 'STRONG BUY';
-                            analysis.riskLevel = 'Low';
-                        } else {
-                            analysis.recommendation = 'BUY';
-                            analysis.riskLevel = nearestSupport.strength === 'Strong' ? 'Low' : 'Medium';
-                        }
+                        analysis.signals.push(`Near REAL support at $${nearestSupport.price} (tested ${nearestSupport.touches} times)`);
+                        analysis.recommendation = 'BUY';
+                        analysis.riskLevel = nearestSupport.strength === 'Strong' ? 'Low' : 'Medium';
                     } else if (nearestResistance && currentPrice >= nearestResistance.price * 0.97) {
-                        analysis.signals.push(`Near REAL resistance at $${nearestResistance.price} (${nearestResistance.touches} touches)`);
-                        if (nearestDescending && currentPrice <= nearestDescending.currentPrice * 1.02) {
-                            analysis.signals.push(`🔻 CONFLUENCE: Resistance + descending trendline at $${nearestDescending.currentPrice}`);
-                            analysis.recommendation = 'STRONG SELL';
-                            analysis.riskLevel = 'Low';
-                        } else {
-                            analysis.recommendation = 'SELL';
-                            analysis.riskLevel = nearestResistance.strength === 'Strong' ? 'Low' : 'Medium';
-                        }
+                        analysis.signals.push(`Near REAL resistance at $${nearestResistance.price} (tested ${nearestResistance.touches} times)`);
+                        analysis.recommendation = 'SELL';
+                        analysis.riskLevel = nearestResistance.strength === 'Strong' ? 'Low' : 'Medium';
+                    } else {
+                        analysis.signals.push('Price in middle of range - wait for better setup');
+                        analysis.riskLevel = 'High';
                     }
                     break;
 
@@ -1088,15 +889,7 @@
                     break;
 
                 case 'trend':
-                    if (nearestAscending && currentPrice >= nearestAscending.currentPrice * 0.97) {
-                        analysis.signals.push(`🔺 Following ascending trendline: $${nearestAscending.currentPrice} (${nearestAscending.touches} touches, ${nearestAscending.strength})`);
-                        analysis.recommendation = 'BUY on dips';
-                        analysis.riskLevel = 'Low';
-                    } else if (nearestDescending && currentPrice <= nearestDescending.currentPrice * 1.03) {
-                        analysis.signals.push(`🔻 Following descending trendline: $${nearestDescending.currentPrice} (${nearestDescending.touches} touches, ${nearestDescending.strength})`);
-                        analysis.recommendation = 'SELL on bounces';
-                        analysis.riskLevel = 'Low';
-                    } else if (trendAnalysis.currentTrend === 'uptrend' && trendAnalysis.trendStrength > 70) {
+                    if (trendAnalysis.currentTrend === 'uptrend' && trendAnalysis.trendStrength > 70) {
                         analysis.signals.push(`Strong ${trendAnalysis.currentTrend} with ${trendAnalysis.trendStrength}% confidence`);
                         analysis.recommendation = 'BUY on dips';
                         analysis.riskLevel = 'Low';
@@ -1108,10 +901,6 @@
                     break;
 
                 case 'reversal':
-                    if (trendlineBreaks.length > 0) {
-                        analysis.signals.push(`Trendline break detected - potential trend reversal`);
-                        analysis.riskLevel = 'High';
-                    }
                     if (trendAnalysis.volatility > 30 && Math.abs(currentData.changePercent) > 3) {
                         const direction = currentData.change < 0 ? 'UP' : 'DOWN';
                         analysis.signals.push(`High volatility (${trendAnalysis.volatility}%) + ${Math.abs(currentData.changePercent)}% move = potential reversal ${direction}`);
@@ -1124,13 +913,214 @@
             return analysis;
         }
 
+        // ====== SIMPLE EXPLANATION FUNCTIONS ======
+        function showSimpleExplanation(stockIndex) {
+            const stock = trackedStocks[stockIndex];
+            const explanation = generateSimpleExplanation(stock);
+            
+            document.getElementById('explanationText').innerHTML = explanation;
+            document.getElementById('explanationModal').style.display = 'block';
+        }
+
+        function closeExplanation() {
+            document.getElementById('explanationModal').style.display = 'none';
+        }
+
+        function generateSimpleExplanation(stock) {
+            const data = stock.data;
+            const analysis = stock.analysis;
+            const levels = analysis.levels;
+            const trend = analysis.historicalAnalysis;
+
+            let explanation = `
+                <h3>🔍 What's Happening with ${data.symbol}?</h3>
+                <p>Let me break down the analysis in simple terms...</p>
+            `;
+
+            // Current situation
+            explanation += `
+                <div class="key-point">
+                    <strong>📍 Current Situation:</strong><br>
+                    ${data.symbol} is trading at <strong>$${data.currentPrice}</strong>, which is 
+                    ${data.change >= 0 ? 'up' : 'down'} <strong>${Math.abs(data.changePercent)}%</strong> today.
+                </div>
+            `;
+
+            // Support and Resistance explanation
+            if (levels.currentSupport || levels.currentResistance) {
+                explanation += `<h3>💪 Support and Resistance - Think of These as Price "Magnets"</h3>`;
+                
+                if (levels.currentSupport) {
+                    const supportDistance = ((data.currentPrice - levels.currentSupport.price) / levels.currentSupport.price * 100).toFixed(1);
+                    explanation += `
+                        <div class="analogy">
+                            <strong>🛡️ Support at $${levels.currentSupport.price}:</strong><br>
+                            Think of this like a strong safety net. In the past ${levels.currentSupport.touches} times, when the stock price fell to around $${levels.currentSupport.price}, buyers stepped in and pushed it back up. It's like a floor that's hard to break through.<br><br>
+                            <strong>Right now:</strong> The stock is ${supportDistance}% above this support level.
+                            ${supportDistance < 3 ? ' <strong>This is very close!</strong> 🎯' : ''}
+                        </div>
+                    `;
+                }
+
+                if (levels.currentResistance) {
+                    const resistanceDistance = ((levels.currentResistance.price - data.currentPrice) / data.currentPrice * 100).toFixed(1);
+                    explanation += `
+                        <div class="analogy">
+                            <strong>🚧 Resistance at $${levels.currentResistance.price}:</strong><br>
+                            This is like a ceiling. ${levels.currentResistance.touches} times before, when the stock tried to go above $${levels.currentResistance.price}, sellers came in and pushed it back down. Think of it as a price level where people think "this is expensive, I'll sell."<br><br>
+                            <strong>Right now:</strong> The stock is ${resistanceDistance}% below this resistance level.
+                            ${resistanceDistance < 3 ? ' <strong>This is very close!</strong> 🎯' : ''}
+                        </div>
+                    `;
+                }
+            }
+
+            // Strategy explanation
+            explanation += `<h3>📋 Your ${analysis.strategy.toUpperCase()} Strategy Explained</h3>`;
+            
+            switch (analysis.strategy) {
+                case 'range':
+                    explanation += `
+                        <div class="key-point">
+                            <strong>Range Trading is like buying low and selling high in a predictable pattern:</strong><br>
+                            • When the stock gets close to support (the "floor"), you consider buying<br>
+                            • When it gets close to resistance (the "ceiling"), you consider selling<br>
+                            • It's like buying apples when they're on sale and selling them when the price goes back up
+                        </div>
+                    `;
+                    break;
+                case 'breakout':
+                    explanation += `
+                        <div class="key-point">
+                            <strong>Breakout Trading is like waiting for the dam to burst:</strong><br>
+                            • You wait for the stock to break through a key level (support or resistance)<br>
+                            • When it breaks through with force, you follow the direction<br>
+                            • It's like waiting for a breakthrough moment and then jumping on board
+                        </div>
+                    `;
+                    break;
+                case 'trend':
+                    explanation += `
+                        <div class="key-point">
+                            <strong>Trend Following is like riding the wave:</strong><br>
+                            • If the stock is in a strong uptrend, you buy on dips<br>
+                            • If it's in a strong downtrend, you avoid buying (or sell)<br>
+                            • It's like going with the flow instead of fighting the current
+                        </div>
+                    `;
+                    break;
+                case 'reversal':
+                    explanation += `
+                        <div class="key-point">
+                            <strong>Reversal Trading is like catching a bouncing ball:</strong><br>
+                            • You look for signs that a trend is about to change direction<br>
+                            • High volatility and big moves often signal potential reversals<br>
+                            • It's riskier but can be very profitable if you're right
+                        </div>
+                    `;
+                    break;
+            }
+
+            // Current recommendation explanation
+            explanation += `<h3>🎯 Why the System Says "${analysis.recommendation}"</h3>`;
+            
+            if (analysis.recommendation === 'BUY') {
+                explanation += `
+                    <div class="action-item">
+                        <strong>BUY Signal Explanation:</strong><br>
+                        The system thinks this might be a good buying opportunity because:<br>
+                        ${analysis.signals.map(signal => `• ${signal}<br>`).join('')}
+                        <br><strong>Think of it like:</strong> You're at a store and your favorite item just went on sale at a price you know is good based on past patterns.
+                    </div>
+                `;
+            } else if (analysis.recommendation === 'SELL') {
+                explanation += `
+                    <div class="action-item">
+                        <strong>SELL Signal Explanation:</strong><br>
+                        The system thinks this might be a good selling opportunity because:<br>
+                        ${analysis.signals.map(signal => `• ${signal}<br>`).join('')}
+                        <br><strong>Think of it like:</strong> You own something that just reached a price where many people have sold before.
+                    </div>
+                `;
+            } else if (analysis.recommendation.includes('BREAKOUT')) {
+                explanation += `
+                    <div class="action-item">
+                        <strong>Breakout Signal Explanation:</strong><br>
+                        ${analysis.signals.map(signal => `• ${signal}<br>`).join('')}
+                        <br><strong>Think of it like:</strong> A dam just broke and water is rushing through - you want to go with the flow.
+                    </div>
+                `;
+            } else {
+                explanation += `
+                    <div class="key-point">
+                        <strong>WAIT Signal Explanation:</strong><br>
+                        The system suggests waiting because the stock is not near any key decision points right now. 
+                        It's like waiting for the right moment instead of forcing a trade.<br><br>
+                        <strong>Why wait?</strong> Better opportunities usually come when the stock gets closer to support or resistance levels.
+                    </div>
+                `;
+            }
+
+            // Risk explanation
+            explanation += `
+                <h3>⚠️ Risk Level: ${analysis.riskLevel}</h3>
+                <div class="key-point">
+            `;
+            
+            if (analysis.riskLevel === 'Low') {
+                explanation += `
+                    <strong>Low Risk:</strong> This is like a "safer bet." The signals are strong and based on levels that have worked multiple times before. Think of it like buying from a store with a good return policy.
+                `;
+            } else if (analysis.riskLevel === 'Medium') {
+                explanation += `
+                    <strong>Medium Risk:</strong> This is a reasonable opportunity, but not as certain as a low-risk trade. It's like buying something that's probably a good deal, but you want to watch it closely.
+                `;
+            } else {
+                explanation += `
+                    <strong>High Risk:</strong> This is more speculative. Like trying to catch a falling knife or betting on a big change. Only consider if you're comfortable with potentially losing money.
+                `;
+            }
+            
+            explanation += `</div>`;
+
+            // What to do next
+            if (analysis.recommendation !== 'WAIT') {
+                explanation += `
+                    <h3>✅ What Should You Actually Do?</h3>
+                    <div class="action-item">
+                        <strong>Step 1:</strong> Don't rush! This is just a signal, not a guarantee.<br>
+                        <strong>Step 2:</strong> Look at the chart yourself to see if you agree.<br>
+                        <strong>Step 3:</strong> If you decide to trade, use a stop loss at $${levels.stopLoss || 'TBD'}<br>
+                        <strong>Step 4:</strong> Only risk money you can afford to lose (the tool suggests ${stock.riskPercent}% of your account).<br><br>
+                        <strong>Remember:</strong> Even the best signals fail sometimes. That's why we use stop losses and position sizing!
+                    </div>
+                `;
+            }
+
+            // Mark Douglas wisdom
+            explanation += `
+                <h3>🧠 Mark Douglas Wisdom for This Trade</h3>
+                <div class="analogy">
+                    <strong>"Think in probabilities, not certainties"</strong><br><br>
+                    This analysis gives you an <em>edge</em> - a higher probability of success based on historical patterns. But remember:<br>
+                    • Any individual trade can fail<br>
+                    • Your job is to follow your rules consistently<br>
+                    • Profits come from many trades, not just one<br>
+                    • Accept the risk before you enter the trade<br><br>
+                    <strong>The market doesn't owe you anything - but consistently following good setups over time can be profitable.</strong>
+                </div>
+            `;
+
+            return explanation;
+        }
+
         function displayStocks() {
             const container = document.getElementById('stocksContainer');
             if (trackedStocks.length === 0) {
                 container.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: #666;">
                         <h3>No stocks being tracked yet</h3>
-                        <p>Add a stock above to start tracking with CORS-friendly APIs and complete analysis</p>
+                        <p>Add a stock above to start tracking opportunities with real historical analysis</p>
                     </div>
                 `;
                 return;
@@ -1140,7 +1130,6 @@
                 const data = stock.data;
                 const analysis = stock.analysis;
                 const levels = analysis.levels;
-                const trendlines = analysis.trendlines || {};
 
                 return `
                     <div class="stock-card">
@@ -1152,17 +1141,10 @@
                                     (${data.change >= 0 ? '+' : ''}${data.change} / ${data.changePercent}%)
                                 </span>
                             </div>
-                            <div class="api-status">
-                                ✅ Real API Keys Active • Twelve Data + Polygon.io • Full historical analysis
-                            </div>
                             <div class="historical-info">
-                                📊 Analyzed ${stock.historicalData?.length || 0} days • 
-                                ${levels.supportLevels?.length || 0} support • 
+                                📊 Analyzed ${stock.historicalData?.length || 0} days of history • 
+                                ${levels.supportLevels?.length || 0} support levels • 
                                 ${levels.resistanceLevels?.length || 0} resistance levels
-                            </div>
-                            <div class="trendline-info">
-                                📈 Found ${(trendlines && trendlines.ascending) ? trendlines.ascending.length : 0} ascending + ${(trendlines && trendlines.descending) ? trendlines.descending.length : 0} descending trendlines • 
-                                ${(trendlines && trendlines.activeTrendlines) ? trendlines.activeTrendlines : 0} currently active
                             </div>
                             <a href="https://finviz.com/quote.ashx?t=${data.symbol}" target="_blank" class="chart-link">
                                 📊 View Chart on Finviz
@@ -1175,45 +1157,26 @@
                                 Risk Level: <span class="${analysis.riskLevel.toLowerCase()}">${analysis.riskLevel}</span><br>
                                 Trend: ${analysis.historicalAnalysis?.currentTrend || 'Unknown'} 
                                 (${analysis.historicalAnalysis?.trendStrength || 0}% confidence)
+                                <br><br>
+                                <button class="btn btn-secondary" onclick="showSimpleExplanation(${index})">
+                                    🧠 Explain Simply
+                                </button>
+                                <button class="btn" onclick="getAIAnalysis(${index})" style="margin-left: 10px;">
+                                    🤖 AI Analysis
+                                </button>
                             </div>
 
-                            ${generateAlertsWithTrendlines(stock)}
+                            ${generateAlerts(stock)}
 
                             <div class="analysis-section">
-                                <h4>📊 Technical Analysis Signals</h4>
-                                ${analysis.signals.map(signal => {
-                                    if (signal.includes('TRENDLINE')) {
-                                        return `<div class="analysis-item trendline-break">${signal}</div>`;
-                                    } else if (signal.includes('CONFLUENCE')) {
-                                        return `<div class="analysis-item strong">${signal}</div>`;
-                                    } else if (signal.includes('🔺') || signal.includes('🔻')) {
-                                        return `<div class="analysis-item trendline">${signal}</div>`;
-                                    } else {
-                                        return `<div class="analysis-item">${signal}</div>`;
-                                    }
-                                }).join('')}
-                            </div>
-
-                            <div class="analysis-section">
-                                <h4>📈 Active Trendlines</h4>
-                                ${(trendlines && trendlines.nearestAscending) ? 
-                                    `<div class="analysis-item trendline">🔺 Ascending: $${trendlines.nearestAscending.currentPrice} 
-                                    (${trendlines.nearestAscending.touches} touches, ${trendlines.nearestAscending.strength}, ${trendlines.nearestAscending.angle}°)</div>` : ''}
-                                ${(trendlines && trendlines.nearestDescending) ? 
-                                    `<div class="analysis-item trendline">🔻 Descending: $${trendlines.nearestDescending.currentPrice} 
-                                    (${trendlines.nearestDescending.touches} touches, ${trendlines.nearestDescending.strength}, ${trendlines.nearestDescending.angle}°)</div>` : ''}
-                                
-                                ${(trendlines && trendlines.ascending) ? trendlines.ascending.slice(0, 2).map(tl => 
-                                    `<div class="analysis-item trendline">Ascending TL: ${tl.touches} touches, ${tl.strength} (${tl.angle}°)</div>`
-                                ).join('') : ''}
-                                
-                                ${(trendlines && trendlines.descending) ? trendlines.descending.slice(0, 2).map(tl => 
-                                    `<div class="analysis-item trendline">Descending TL: ${tl.touches} touches, ${tl.strength} (${tl.angle}°)</div>`
-                                ).join('') : ''}
+                                <h4>📊 Historical Analysis Signals</h4>
+                                ${analysis.signals.map(signal => 
+                                    `<div class="analysis-item">${signal}</div>`
+                                ).join('')}
                             </div>
 
                             <div class="analysis-section">
-                                <h4>🎯 Key Horizontal Levels</h4>
+                                <h4>🎯 REAL Support & Resistance Levels</h4>
                                 ${levels.currentSupport ? 
                                     `<div class="analysis-item strong">💪 Current Support: $${levels.currentSupport.price} 
                                     (${levels.currentSupport.touches} touches, ${levels.currentSupport.strength})</div>` : ''}
@@ -1221,9 +1184,16 @@
                                     `<div class="analysis-item strong">💪 Current Resistance: $${levels.currentResistance.price} 
                                     (${levels.currentResistance.touches} touches, ${levels.currentResistance.strength})</div>` : ''}
                                 
-                                ${levels.stopLoss ? `<div class="analysis-item danger">📍 Horizontal Stop Loss: $${levels.stopLoss}</div>` : ''}
-                                ${(trendlines && trendlines.stopLoss) ? `<div class="analysis-item danger">📍 Trendline Stop Loss: $${trendlines.stopLoss}</div>` : ''}
-                                ${levels.takeProfit ? `<div class="analysis-item">🎯 Take Profit: $${levels.takeProfit}</div>` : ''}
+                                ${levels.supportLevels?.slice(0, 3).map(level => 
+                                    `<div class="analysis-item">Support: $${level.price} (${level.touches} touches, ${level.strength})</div>`
+                                ).join('') || ''}
+                                
+                                ${levels.resistanceLevels?.slice(0, 3).map(level => 
+                                    `<div class="analysis-item warning">Resistance: $${level.price} (${level.touches} touches, ${level.strength})</div>`
+                                ).join('') || ''}
+                                
+                                ${levels.stopLoss ? `<div class="analysis-item danger">📍 Suggested Stop Loss: $${levels.stopLoss}</div>` : ''}
+                                ${levels.takeProfit ? `<div class="analysis-item">🎯 Suggested Take Profit: $${levels.takeProfit}</div>` : ''}
                             </div>
 
                             <div class="douglas-principles">
@@ -1245,52 +1215,15 @@
             }).join('');
         }
 
-        function generateAlertsWithTrendlines(stock) {
+        function generateAlerts(stock) {
             const data = stock.data;
             const levels = stock.analysis.levels;
-            const trendlines = stock.analysis.trendlines || {};
             const alerts = [];
 
-            // Trendline break alerts (highest priority)
-            if (trendlines.trendlineBreaks && trendlines.trendlineBreaks.length > 0) {
-                trendlines.trendlineBreaks.forEach(breakInfo => {
-                    if (breakInfo.type === 'ascending_break') {
-                        alerts.push({
-                            type: 'danger',
-                            message: `🔻 TRENDLINE BREAKDOWN: ${breakInfo.breakPercentage}% below ascending trendline!`,
-                            action: `Consider SELL/SHORT - trendline support broken at $${breakInfo.trendlinePrice}`
-                        });
-                    } else if (breakInfo.type === 'descending_break') {
-                        alerts.push({
-                            type: 'success',
-                            message: `🚀 TRENDLINE BREAKOUT: ${breakInfo.breakPercentage}% above descending trendline!`,
-                            action: `Consider BUY - resistance trendline broken at $${breakInfo.trendlinePrice}`
-                        });
-                    }
-                });
-            }
-
-            // Trendline proximity alerts
-            if (trendlines.nearestAscending && Math.abs(data.currentPrice - trendlines.nearestAscending.currentPrice) / trendlines.nearestAscending.currentPrice < 0.02) {
-                alerts.push({
-                    type: 'success',
-                    message: `🔺 Near Ascending Trendline: $${trendlines.nearestAscending.currentPrice}`,
-                    action: `Potential BUY opportunity (${trendlines.nearestAscending.touches} touches, ${trendlines.nearestAscending.strength})`
-                });
-            }
-
-            if (trendlines.nearestDescending && Math.abs(data.currentPrice - trendlines.nearestDescending.currentPrice) / trendlines.nearestDescending.currentPrice < 0.02) {
-                alerts.push({
-                    type: 'warning',
-                    message: `🔻 Near Descending Trendline: $${trendlines.nearestDescending.currentPrice}`,
-                    action: `Watch for rejection (${trendlines.nearestDescending.touches} touches, ${trendlines.nearestDescending.strength})`
-                });
-            }
-
-            // Horizontal level alerts
+            // Check proximity to support/resistance
             if (levels.currentSupport && Math.abs(data.currentPrice - levels.currentSupport.price) / levels.currentSupport.price < 0.02) {
                 alerts.push({
-                    type: 'info',
+                    type: 'success',
                     message: `🎯 Near ${levels.currentSupport.strength} Support: $${levels.currentSupport.price}`,
                     action: `Potential BUY opportunity (tested ${levels.currentSupport.touches} times)`
                 });
@@ -1304,8 +1237,25 @@
                 });
             }
 
+            // Check for breakouts
+            if (levels.currentResistance && data.currentPrice > levels.currentResistance.price) {
+                alerts.push({
+                    type: 'success',
+                    message: `🚀 BREAKOUT above $${levels.currentResistance.price} resistance!`,
+                    action: 'Consider buy on pullback confirmation'
+                });
+            }
+
+            if (levels.currentSupport && data.currentPrice < levels.currentSupport.price) {
+                alerts.push({
+                    type: 'danger',
+                    message: `📉 BREAKDOWN below $${levels.currentSupport.price} support!`,
+                    action: 'Consider exit or short position'
+                });
+            }
+
             if (alerts.length === 0) {
-                return '<div class="alert info">✅ No immediate action - monitoring trendlines and key levels</div>';
+                return '<div class="alert info">✅ No immediate action - price between key levels</div>';
             }
 
             return alerts.map(alert => `
@@ -1319,8 +1269,8 @@
         async function updateStock(index) {
             try {
                 const stock = trackedStocks[index];
-                const newCurrentData = await fetchCurrentDataCORSFriendly(stock.symbol);
-                const newAnalysis = analyzeStockWithHistoryAndTrendlines(newCurrentData, stock.historicalData, stock.strategy);
+                const newCurrentData = await fetchCurrentStockData(stock.symbol);
+                const newAnalysis = analyzeStockWithHistory(newCurrentData, stock.historicalData, stock.strategy);
                 
                 trackedStocks[index] = {
                     ...stock,
@@ -1348,6 +1298,200 @@
                 await updateStock(i);
             }
         }
+
+        // Close explanation modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('explanationModal');
+            if (event.target === modal) {
+                closeExplanation();
+            }
+        }
+
+        // ====== CLAUDE API INTEGRATION ======
+        function saveApiKey() {
+            const apiKey = document.getElementById('claudeApiKey').value.trim();
+            const statusElement = document.getElementById('apiKeyStatus');
+            
+            if (!apiKey || !apiKey.startsWith('sk-ant-api03-')) {
+                statusElement.innerHTML = '<span style="color: red;">❌ Invalid API Key</span>';
+                return;
+            }
+            
+            localStorage.setItem('claudeApiKey', apiKey);
+            statusElement.innerHTML = '<span style="color: green;">✅ API Key Saved</span>';
+            document.getElementById('claudeApiKey').value = '';
+            setTimeout(() => {
+                statusElement.innerHTML = '';
+            }, 3000);
+        }
+
+        function loadApiKey() {
+            const stored = localStorage.getItem('claudeApiKey');
+            if (stored) {
+                document.getElementById('apiKeyStatus').innerHTML = '<span style="color: green;">✅ API Key Ready</span>';
+                return stored;
+            }
+            return null;
+        }
+
+        async function getAIAnalysis(stockIndex) {
+            const apiKey = localStorage.getItem('claudeApiKey');
+            if (!apiKey) {
+                alert('Please enter and save your Claude API key first.');
+                return;
+            }
+
+            const stock = trackedStocks[stockIndex];
+            const analysisButton = event.target;
+            const originalText = analysisButton.innerHTML;
+            
+            try {
+                analysisButton.innerHTML = '🤖 Analyzing...';
+                analysisButton.disabled = true;
+                
+                const aiAnalysis = await callClaudeAPI(stock, apiKey);
+                showAIAnalysis(stock.data.symbol, aiAnalysis);
+                
+            } catch (error) {
+                console.error('AI Analysis Error:', error);
+                alert('Error getting AI analysis: ' + error.message);
+            } finally {
+                analysisButton.innerHTML = originalText;
+                analysisButton.disabled = false;
+            }
+        }
+
+        async function callClaudeAPI(stock, apiKey) {
+            const prompt = buildTradingAnalysisPrompt(stock);
+            
+            const response = await fetch('https://api.anthropic.com/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': apiKey,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify({
+                    model: 'claude-3-5-sonnet-20241022',
+                    max_tokens: 1500,
+                    messages: [
+                        {
+                            role: 'user',
+                            content: prompt
+                        }
+                    ]
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(`API Error: ${errorData.error?.message || response.statusText}`);
+            }
+
+            const data = await response.json();
+            return data.content[0].text;
+        }
+
+        function buildTradingAnalysisPrompt(stock) {
+            const data = stock.data;
+            const analysis = stock.analysis;
+            const levels = analysis.levels;
+            const trend = analysis.historicalAnalysis;
+            const historical = stock.historicalData;
+
+            return `You are an expert stock trader and analyst. Please provide a comprehensive, actionable trading analysis for ${data.symbol} based on the following complete dataset. I want your professional opinion synthesizing ALL this information into clear guidance for a retail trader.
+
+CURRENT MARKET DATA:
+- Symbol: ${data.symbol}
+- Current Price: ${data.currentPrice}
+- Today's Change: ${data.change >= 0 ? '+' : ''}${data.change} (${data.changePercent}%)
+- Open: ${data.open}, High: ${data.high}, Low: ${data.low}
+- Volume: ${data.volume.toLocaleString()}
+- Previous Close: ${data.previousClose}
+
+HISTORICAL ANALYSIS (${historical.length} days of data):
+- Current Trend: ${trend.currentTrend} with ${trend.trendStrength}% confidence
+- Trend Change: ${trend.trendChange}% (comparing recent 30 days vs previous 30 days)
+- Volatility: ${trend.volatility}% (annualized)
+- Average Volume: ${trend.avgVolume.toLocaleString()}
+
+SUPPORT & RESISTANCE LEVELS (from 6-month analysis):
+Support Levels:
+${levels.supportLevels?.map(level => `- ${level.price} (${level.touches} touches, ${level.strength} strength)`).join('\n') || 'None identified'}
+
+Resistance Levels:
+${levels.resistanceLevels?.map(level => `- ${level.price} (${level.touches} touches, ${level.strength} strength)`).join('\n') || 'None identified'}
+
+Current Nearest Support: ${levels.currentSupport ? `${levels.currentSupport.price} (${levels.currentSupport.touches} touches, ${levels.currentSupport.strength})` : 'None'}
+Current Nearest Resistance: ${levels.currentResistance ? `${levels.currentResistance.price} (${levels.currentResistance.touches} touches, ${levels.currentResistance.strength})` : 'None'}
+
+TRADING STRATEGY: ${analysis.strategy}
+CURRENT SYSTEM RECOMMENDATION: ${analysis.recommendation}
+CURRENT SIGNALS: ${analysis.signals.join(', ')}
+RISK LEVEL: ${analysis.riskLevel}
+SUGGESTED STOP LOSS: ${levels.stopLoss ? `${levels.stopLoss}` : 'TBD'}
+
+TRADER'S RISK TOLERANCE: ${stock.riskPercent}% per trade
+
+Please provide:
+1. Your professional assessment of this trading opportunity
+2. Whether you agree/disagree with the system's recommendation and why
+3. Specific entry, exit, and stop-loss recommendations with reasoning
+4. Risk assessment and position sizing advice
+5. What to watch for next (key price levels, volume patterns, time factors)
+6. Any market context or external factors I should consider
+
+Write this in a clear, actionable format that a retail trader can immediately understand and act upon. Be specific with price levels and reasoning. If you see any red flags or better opportunities, mention them.`;
+        }
+
+        function showAIAnalysis(symbol, analysis) {
+            const existingModal = document.getElementById('aiAnalysisModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+
+            const modal = document.createElement('div');
+            modal.id = 'aiAnalysisModal';
+            modal.className = 'explanation-modal';
+            modal.style.display = 'block';
+            
+            modal.innerHTML = `
+                <div class="explanation-content">
+                    <div class="explanation-header" style="background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 100%);">
+                        <span class="close-explanation" onclick="closeAIAnalysis()">&times;</span>
+                        <h2>🤖 AI Trading Analysis: ${symbol}</h2>
+                        <p style="margin: 10px 0 0 0; opacity: 0.9;">Professional analysis by Claude</p>
+                    </div>
+                    <div class="simple-explanation" style="white-space: pre-wrap; font-family: 'Segoe UI', sans-serif; line-height: 1.6;">
+                        ${analysis}
+                    </div>
+                    <div style="margin-top: 20px; padding: 15px; background: #f0f8ff; border-radius: 8px; font-size: 0.9em; color: #666;">
+                        <strong>💡 Note:</strong> This analysis cost approximately $0.02 and is based on current data. Always do your own research and never risk more than you can afford to lose.
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Close modal when clicking outside
+            modal.onclick = function(event) {
+                if (event.target === modal) {
+                    closeAIAnalysis();
+                }
+            }
+        }
+
+        function closeAIAnalysis() {
+            const modal = document.getElementById('aiAnalysisModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        // Load API key status on page load
+        window.addEventListener('load', function() {
+            loadApiKey();
+        });
 
         // Allow Enter key to add stock
         document.addEventListener('DOMContentLoaded', function() {
